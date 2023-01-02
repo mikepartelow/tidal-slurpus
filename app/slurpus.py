@@ -31,6 +31,10 @@ def main():
         with open(cache_path, "w", encoding="utf-8") as cache_f:
             json.dump(cache, cache_f)
 
+# FIXME: `make lint` works in devcontainer
+# FIXME: shell in devcontainer defaults to same dir as Makefile
+# FIXME: vscode `Python: Run Linting` works
+# FIXME: vscode `Python: Run in Terminal` works even though devcontainer defaults to same dir as Makefile
 
 if __name__ == "__main__":
     main()
