@@ -1,4 +1,4 @@
-IMAGE_TAG=tidal-slurpus
+IMAGE_TAG=tidal-playlists
 MOUNT=-v`pwd`/app:/app
 
 build:

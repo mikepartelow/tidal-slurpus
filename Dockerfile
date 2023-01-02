@@ -11,4 +11,4 @@ RUN pip install tidalapi black pylint flake8
 
 WORKDIR /app
 
-CMD python3 ./slurpus.py
+CMD python3 ./dumpus.py

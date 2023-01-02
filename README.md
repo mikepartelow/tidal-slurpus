@@ -1,17 +1,17 @@
-# Tidal Slurpus
+# Tidal Dumpus
 
 Download a playlist from Tidal and store it in a local JSON file.
 
 ## How?
 
-1. Create `app/slurpus_config.json`
+1. Create `app/dumpus_config.json`
 2. `make run`
 3. Playlist can be found in `app/$PLAYLIST_NAME.$DATESTAMP.json`
 
-## app/slurpus_config.json
+## app/dumpus_config.json
 
 - `playlist_id` is the id from Tidal's `Share > Copy Playlist Link`
-- `playlist_name` is the base name of the file that `tidal-slurpus` will create
+- `playlist_name` is the base name of the file that `tidal-dumpus` will create
 
 ```json
 {
@@ -20,9 +20,9 @@ Download a playlist from Tidal and store it in a local JSON file.
 }
 ```
 
-## app/slurpus_creds.json
+## app/dumpus_creds.json
 
-After your initial login, reusable session credentials will be saved to `app/slurpus_creds.json`. Delete this file to login again.
+After your initial login, reusable session credentials will be saved to `app/dumpus_creds.json`. Delete this file to login again.
 
 ## Credits
 
