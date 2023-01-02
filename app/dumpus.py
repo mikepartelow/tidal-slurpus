@@ -1,9 +1,9 @@
 """Fetch a Tidal playlist and write it to a JSON file."""
 from datetime import datetime
-from pathlib import Path
 import json
 import time
 import tidalapi
+from helpers import auth
 
 # time to sleep between tracks() API calls to avoid rate limits
 BATCH_SLEEP = 8
@@ -13,41 +13,6 @@ PATH_TO_CREDS = "tidal.json"
 
 # a JSON file with playlist_id to downloand and playlist_name base filename to write
 PATH_TO_CONFIG = "dumpus_config.json"
-
-
-def store_creds(session):
-    """Store Tidal session credentials to a JSON file."""
-    creds = dict(
-        token_type=session.token_type,
-        access_token=session.access_token,
-        refresh_token=session.refresh_token,
-        expiry_time=session.expiry_time,
-    )
-
-    with open(PATH_TO_CREDS, "w", encoding="utf-8") as creds_f:
-        json.dump(creds, creds_f, default=str)
-
-
-def load_creds():
-    """Load Tidal session credentials from a JSON file."""
-    if Path(PATH_TO_CREDS).exists():
-        with open(PATH_TO_CREDS, "r", encoding="utf-8") as creds_f:
-            return json.load(creds_f)
-    return None
-
-
-def login(session):
-    """Login to Tidal with stored or fresh credentials."""
-    if creds := load_creds():
-        session.load_oauth_session(
-            creds["token_type"],
-            creds["access_token"],
-            creds["refresh_token"],
-            creds["expiry_time"],
-        )
-    else:
-        session.login_oauth_simple()
-        store_creds(session)
 
 
 def write_playlist(session, playlist_id, playlist_path):
@@ -85,12 +50,12 @@ def main():
         config = json.load(config_f)
 
     session = tidalapi.Session()
-    login(session)
+    auth.login(session)
 
     datestamp = datetime.now().strftime("%Y%m%d%H%M%S")
     playlist_path = f"{config['playlist_name']}.{datestamp}.json"
 
-    write_playlist(session, config['playlist_id'], playlist_path)
+    write_playlist(session, config["playlist_id"], playlist_path)
     print(f"Wrote Tidal Playlist to {playlist_path}")
 
 

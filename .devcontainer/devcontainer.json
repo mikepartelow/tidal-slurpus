@@ -10,6 +10,17 @@
 	},
 	"features": {
 		"ghcr.io/devcontainers/features/git:1": {}
+	},
+	"extensions": [
+		"ms-python.python",
+		"ms-python.vscode-pylance"
+	],
+	"customizations": {
+		"vscode": {
+			"settings": {
+				"terminal.integrated.cwd": "app"
+			}
+		}
 	}
 
 	// Features to add to the dev container. More info: https://containers.dev/features.
@@ -20,9 +31,6 @@
 
 	// Uncomment the next line to run commands after the container is created.
 	// "postCreateCommand": "cat /etc/os-release",
-
-	// Configure tool-specific properties.
-	// "customizations": {},
 
 	// Uncomment to connect as an existing user other than the container default. More info: https://aka.ms/dev-containers-non-root.
 	// "remoteUser": "devcontainer"

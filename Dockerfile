@@ -11,4 +11,6 @@ RUN pip install tidalapi black pylint flake8
 
 WORKDIR /app
 
+RUN echo 'export PS1="[\u]:[\w] # "' >> /root/.bashrc
+
 CMD python3 ./dumpus.py
