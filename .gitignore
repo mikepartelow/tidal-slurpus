@@ -1,1 +1,3 @@
-*.json
+app/*.json
+/*.json
+The Playlist.txt
