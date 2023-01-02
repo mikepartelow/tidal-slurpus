@@ -8,11 +8,11 @@ import tidalapi
 # time to sleep between tracks() API calls to avoid rate limits
 BATCH_SLEEP = 8
 
-# slurpus.py maintains this file with Tidal session credentials
-PATH_TO_CREDS = "slurpus_creds.json"
+# dumpus.py maintains this file with Tidal session credentials
+PATH_TO_CREDS = "tidal.json"
 
 # a JSON file with playlist_id to downloand and playlist_name base filename to write
-PATH_TO_CONFIG = "slurpus_config.json"
+PATH_TO_CONFIG = "dumpus_config.json"
 
 
 def store_creds(session):
