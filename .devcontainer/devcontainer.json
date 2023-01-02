@@ -18,7 +18,10 @@
 	"customizations": {
 		"vscode": {
 			"settings": {
-				"terminal.integrated.cwd": "app"
+				"terminal.integrated.cwd": "app",
+				"python.formatting.provider": "black",
+				"python.linting.enabled": true,
+				"python.linting.pylintEnabled": true
 			}
 		}
 	}

@@ -34,7 +34,10 @@ def main():
 # FIXME: `make lint` works in devcontainer
 # FIXME: shell in devcontainer defaults to same dir as Makefile
 # FIXME: vscode `Python: Run Linting` works
+# FIXME: vscode python linting uses same tools as Makefile
+# FIXME: vscode python linting runs `make lint` ?
 # FIXME: vscode `Python: Run in Terminal` works even though devcontainer defaults to same dir as Makefile
+# REFER: https://github.com/microsoft/vscode-dev-containers/blob/main/containers/python-3/.devcontainer/devcontainer.json
 
 if __name__ == "__main__":
     main()
