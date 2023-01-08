@@ -32,7 +32,6 @@ def find_track(name, artist, album, cache, session):
 
     if not (candidates := cache[key]["candidates"]):
         results = session.search(name, models=[tidalapi.media.Track])
-        print(results)
         candidates = {
             r.id: Track(
                         name=r.name,
@@ -55,17 +54,18 @@ def find_track(name, artist, album, cache, session):
 def import_playlist(input_path, playlist_name, cache, session):
     # https://tidalapi.netlify.app/playlist.html#adding-to-a-playlist
 
+    track_count, track_ids = 0, 0
     with open(input_path, "r", encoding="utf-8") as input_f:
-        for lineno, line in enumerate(input_f):
-            track, album, artist = line.split("\t")
+        for line in input_f:
+            track_count += 1
+            track, album, artist = map(str.strip, line.split("\t"))
 
             # note argument order is not the same as input_f order
             track_id = find_track(track, artist, album, cache, session)
-            print(cache)
-            print(track_id)
+            if track_id:
+                track_ids += 1
 
-            if track_id or lineno > 100:
-                break
+    print(f"Found {track_ids} ids for {track_count} tracks.")
 
 def main():
     """Does the magic."""
@@ -92,7 +92,8 @@ def main():
         with open(cache_path, "w", encoding="utf-8") as cache_f:
             json.dump(cache, cache_f, indent=2)
 
-# FIXME: refactor cache to an object
+# FIXME: refactor cache to an object in a lib
+# FIXME: cache explorer app
 # FIXME: match inexact tracks
 # FIXME: `make lint` works in devcontainer
 # FIXME: shell in devcontainer defaults to same dir as Makefile
