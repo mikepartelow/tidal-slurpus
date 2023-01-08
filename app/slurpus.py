@@ -90,7 +90,7 @@ def main():
         import_playlist(input_path, tidal_playlist_name, cache, session)
     finally:
         with open(cache_path, "w", encoding="utf-8") as cache_f:
-            json.dump(cache, cache_f)
+            json.dump(cache, cache_f, indent=2)
 
 # FIXME: refactor cache to an object
 # FIXME: match inexact tracks
