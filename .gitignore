@@ -1,3 +1,4 @@
 app/*.json
 /*.json
 The Playlist.txt
+*.pyc
