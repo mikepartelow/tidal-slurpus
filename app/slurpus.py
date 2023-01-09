@@ -9,7 +9,7 @@ PATH_TO_CONFIG = "slurpus_config.json"
 Track = namedtuple("Track", "name artist album")
 
 def find_track(name, artist, album, track_cache, session):
-    key = track_cache.key_for(name, artist, album)
+    key = track_cache.make_key(name, artist, album)
     if track_id := track_cache.get_track_id(key):
         return track_id
 
@@ -41,13 +41,15 @@ def import_playlist(input_path, playlist_name, track_cache, session):
     with open(input_path, "r", encoding="utf-8") as input_f:
         for line in input_f:
             track_count += 1
+            if track_count % 100 == 0:
+                print(".", end="", flush=True)
             track, album, artist = map(str.strip, line.split("\t"))
 
             # note argument order is not the same as input_f order
             track_id = find_track(track, artist, album, track_cache, session)
             if track_id:
                 track_ids += 1
-
+    print("")
     print(f"Found {track_ids} ids for {track_count} tracks.")
 
 def main():
