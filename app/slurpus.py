@@ -1,7 +1,6 @@
 import json
 import tidalapi
-from pathlib import Path
-from helpers import auth
+from lib import auth, cache
 from collections import namedtuple
 
 # a JSON file with playlist_id to import to, and an input_path to import from
@@ -9,28 +8,12 @@ PATH_TO_CONFIG = "slurpus_config.json"
 
 Track = namedtuple("Track", "name artist album")
 
-# cache format
-# {
-#   cache_key(track, artist, album) : {
-#     tidal_id: 123 or None,
-#     candidates: {tidal_id: Track(), tidal_id: Track(), ...}
-#   },
-#   ...
-# }
+def find_track(name, artist, album, track_cache, session):
+    key = track_cache.key_for(name, artist, album)
+    if track_id := track_cache.get_track_id(key):
+        return track_id
 
-def cache_key(track, artist, album):
-    return f"{track}::{artist}::{album}"
-
-def find_track(name, artist, album, cache, session):
-    key = cache_key(name, artist, album)
-    if key in cache:
-        if (track_id := cache[key]["track_id"]) is not None:
-            return track_id
-    else:
-        cache[key] = {"track_id": None, "candidates": {}}
-
-
-    if not (candidates := cache[key]["candidates"]):
+    if not (candidates := track_cache.get_candidates(key)):
         results = session.search(name, models=[tidalapi.media.Track])
         candidates = {
             r.id: Track(
@@ -40,18 +23,18 @@ def find_track(name, artist, album, cache, session):
                        )
             for r in results["tracks"]}
 
-        cache[key]["candidates"] = candidates
+        track_cache.set_candidates(key, candidates)
 
     target = Track(name=name, artist=artist, album=album)
 
     for track_id, candidate in candidates.items():
         if candidate == target:
-            cache[key]["track_id"] = track_id
+            track_cache.set_track_id(key, track_id)
             return track_id
 
     return None
 
-def import_playlist(input_path, playlist_name, cache, session):
+def import_playlist(input_path, playlist_name, track_cache, session):
     # https://tidalapi.netlify.app/playlist.html#adding-to-a-playlist
 
     track_count, track_ids = 0, 0
@@ -61,7 +44,7 @@ def import_playlist(input_path, playlist_name, cache, session):
             track, album, artist = map(str.strip, line.split("\t"))
 
             # note argument order is not the same as input_f order
-            track_id = find_track(track, artist, album, cache, session)
+            track_id = find_track(track, artist, album, track_cache, session)
             if track_id:
                 track_ids += 1
 
@@ -79,20 +62,10 @@ def main():
     tidal_playlist_name = config["tidal_playlist_name"]
 
     cache_path = f"{input_path}.cache.json"
+    with cache.TrackCache(cache_path) as track_cache:
+        import_playlist(input_path, tidal_playlist_name, track_cache, session)
 
-    if Path(cache_path).exists():
-        with open(cache_path, "r", encoding="utf-8") as cache_f:
-            cache = json.load(cache_f)
-    else:
-        cache = {}
 
-    try:
-        import_playlist(input_path, tidal_playlist_name, cache, session)
-    finally:
-        with open(cache_path, "w", encoding="utf-8") as cache_f:
-            json.dump(cache, cache_f, indent=2)
-
-# FIXME: refactor cache to an object in a lib
 # FIXME: cache explorer app
 # FIXME: match inexact tracks
 # FIXME: `make lint` works in devcontainer

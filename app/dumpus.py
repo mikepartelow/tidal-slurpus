@@ -3,7 +3,7 @@ from datetime import datetime
 import json
 import time
 import tidalapi
-from helpers import auth
+from lib import auth
 
 # time to sleep between tracks() API calls to avoid rate limits
 BATCH_SLEEP = 8
