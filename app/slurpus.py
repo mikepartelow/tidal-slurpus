@@ -8,25 +8,38 @@ PATH_TO_CONFIG = "slurpus_config.json"
 
 Track = namedtuple("Track", "name artist album")
 
+
+def find_candidates(target, session):
+    candidates = {}
+    search_terms = [f"{target.name} {target.artist}", target.name]
+
+    for search_term in search_terms:
+        results = session.search(search_term, models=[tidalapi.media.Track])
+
+        for result in results["tracks"]:
+            candidate = Track(name=result.name, artist=result.artist.name, album=result.album.name)
+            candidates.update({result.id: candidate})
+
+            if candidate == target:
+                return candidates
+
+    return candidates
+
 def find_track(name, artist, album, track_cache, session):
+
+    freshen_candidates = False
+
     key = track_cache.make_key(name, artist, album)
     if track_id := track_cache.get_track_id(key):
         return track_id
 
-    if not (candidates := track_cache.get_candidates(key)):
-        results = session.search(name, models=[tidalapi.media.Track])
-        candidates = {
-            r.id: Track(
-                        name=r.name,
-                        artist=r.artist.name,
-                        album=r.album.name
-                       )
-            for r in results["tracks"]}
-
-        track_cache.set_candidates(key, candidates)
-
     target = Track(name=name, artist=artist, album=album)
 
+    if freshen_candidates or not (candidates := track_cache.get_candidates(key)):
+        candidates = find_candidates(target, session)
+        track_cache.set_candidates(key, candidates)
+
+    # FIXME: if we called find_candidates, we already did this so don't do it again
     for track_id, candidate in candidates.items():
         if candidate == target:
             track_cache.set_track_id(key, track_id)
@@ -68,8 +81,9 @@ def main():
         import_playlist(input_path, tidal_playlist_name, track_cache, session)
 
 
-# FIXME: cache explorer app
 # FIXME: match inexact tracks
+# FIXME: probably need to page search results - but this is last resort
+# FIXME: use dataclasses instead of namedtuple
 # FIXME: `make lint` works in devcontainer
 # FIXME: shell in devcontainer defaults to same dir as Makefile
 # FIXME: vscode `Python: Run Linting` works

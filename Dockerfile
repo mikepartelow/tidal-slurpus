@@ -1,7 +1,7 @@
 FROM debian
 
 RUN apt-get update -yq && \
-    apt-get install -yq curl python3 python3-pip gron jq
+    apt-get install -yq curl python3 python3-pip gron jq less
 
 
 USER root

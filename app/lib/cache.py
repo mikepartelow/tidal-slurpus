@@ -12,9 +12,10 @@ from pathlib import Path
 # }
 
 class TrackCache:
-    def __init__(self, cache_path):
+    def __init__(self, cache_path, read_only=False):
         self.cache_path = cache_path
         self.cache = defaultdict(dict)
+        self.read_only = read_only
 
         if Path(cache_path).exists():
             with open(cache_path, "r", encoding="utf-8") as cache_f:
@@ -24,10 +25,17 @@ class TrackCache:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        with open(self.cache_path, "w", encoding="utf-8") as cache_f:
-            json.dump(self.cache, cache_f, indent=2)
+        if not self.read_only:
+            with open(self.cache_path, "w", encoding="utf-8") as cache_f:
+                json.dump(self.cache, cache_f, indent=2)
 
         return False
+
+    def __iter__(self):
+        for key, value in self.cache.items():
+            d = dict(value)
+            d['key'] = key
+            yield d
 
     def make_key(self, track, artist, album):
         return f"{track}::{artist}::{album}"
