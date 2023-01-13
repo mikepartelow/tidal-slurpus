@@ -2,14 +2,6 @@ import json
 from collections import defaultdict
 from pathlib import Path
 
-# cache format
-# {
-#   cache_key(track, artist, album) : {
-#     tidal_id: 123 or None,
-#     candidates: {tidal_id: Track(), tidal_id: Track(), ...}
-#   },
-#   ...
-# }
 
 class TrackCache:
     def __init__(self, cache_path, read_only=False):

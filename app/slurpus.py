@@ -1,29 +1,45 @@
 import json
 import tidalapi
 from lib import auth, cache
-from collections import namedtuple
+from collections import namedtuple, Counter
 
 # a JSON file with playlist_id to import to, and an input_path to import from
 PATH_TO_CONFIG = "slurpus_config.json"
 
-Track = namedtuple("Track", "name artist album")
+Track = namedtuple("Track", "name artist album artists")
 
+def same_track(track_a, track_b):
+    if track_a.name == track_b.name \
+            and track_a.album == track_b.album \
+            and track_a.artist == track_b.artist:
+        return True
+
+    # FIXME: once Track is a dataclass, cache Counter(self.artists)
+    if track_a.name == track_b.name \
+            and track_a.album == track_b.album \
+            and Counter(track_a.artists) == Counter(track_b.artists):
+        return True
+
+    return False
 
 def find_candidates(target, session):
     candidates = {}
     search_terms = [f"{target.name} {target.artist}", target.name]
+    target_artists = Counter(map(str.strip, target.artist.split(',')))
+    multi_artist_target = len(target_artists) > 1
 
     for search_term in search_terms:
         results = session.search(search_term, models=[tidalapi.media.Track])
 
         for result in results["tracks"]:
-            candidate = Track(name=result.name, artist=result.artist.name, album=result.album.name)
+            artist_group = ', '.join(a.name for a in result.artists)
+            candidate = Track(name=result.name, artist=result.artist.name, album=result.album.name, artists=artist_group)
             candidates.update({result.id: candidate})
 
-            if candidate == target:
-                return candidates
+            if same_track(candidate, target):
+                return candidates, result.id
 
-    return candidates
+    return candidates, None
 
 def find_track(name, artist, album, track_cache, session):
 
@@ -33,15 +49,18 @@ def find_track(name, artist, album, track_cache, session):
     if track_id := track_cache.get_track_id(key):
         return track_id
 
-    target = Track(name=name, artist=artist, album=album)
+    # Our data source has only one "artist" field which can contain a list of artists like
+    # "The Comet Is Coming, Kae Tempest"
+    target = Track(name=name, artist=artist, album=album, artists=artist)
 
     if freshen_candidates or not (candidates := track_cache.get_candidates(key)):
-        candidates = find_candidates(target, session)
+        candidates, track_id = find_candidates(target, session)
         track_cache.set_candidates(key, candidates)
+        if track_id:
+            return track_id
 
-    # FIXME: if we called find_candidates, we already did this so don't do it again
     for track_id, candidate in candidates.items():
-        if candidate == target:
+        if same_track(Track(*candidate), target):
             track_cache.set_track_id(key, track_id)
             return track_id
 
@@ -82,8 +101,10 @@ def main():
 
 
 # FIXME: match inexact tracks
-# FIXME: probably need to page search results - but this is last resort
+#        - [ ] multi-artist tracks
 # FIXME: use dataclasses instead of namedtuple
+# FIXME: typing
+# FIXME: probably need to page search results - but this is last resort
 # FIXME: `make lint` works in devcontainer
 # FIXME: shell in devcontainer defaults to same dir as Makefile
 # FIXME: vscode `Python: Run Linting` works
