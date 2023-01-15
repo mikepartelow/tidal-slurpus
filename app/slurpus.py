@@ -8,16 +8,25 @@ PATH_TO_CONFIG = "slurpus_config.json"
 
 Track = namedtuple("Track", "name artist album artists")
 
-def same_track(track_a, track_b):
-    if track_a.name == track_b.name \
-            and track_a.album == track_b.album \
-            and track_a.artist == track_b.artist:
+def same_track(candidate, target):
+    # FIXME: cache in dataclass
+    if "remaster" in target.name.lower():
+        # FIXME: dataclass.__init__(scrub=True)
+        def scrub(name):
+            ttable = {ord(c): None for c in "-()[]"}
+            return ' '.join(name.translate(ttable).split())
+        candidate = Track(name=scrub(candidate.name), artist=candidate.artist, album=candidate.album, artists=candidate.artists)
+        target = Track(name=scrub(target.name), artist=target.artist, album=target.album, artists=target.artists)
+
+    if candidate.name == target.name \
+            and candidate.album == target.album \
+            and candidate.artist == target.artist:
         return True
 
     # FIXME: once Track is a dataclass, cache Counter(self.artists)
-    if track_a.name == track_b.name \
-            and track_a.album == track_b.album \
-            and Counter(track_a.artists) == Counter(track_b.artists):
+    if candidate.name == target.name \
+            and candidate.album == target.album \
+            and Counter(candidate.artists) == Counter(target.artists):
         return True
 
     return False
@@ -86,6 +95,7 @@ def import_playlist(input_path, playlist_name, track_cache, session):
 
 def main():
     """Does the magic."""
+    raise "time for refactor"
     with open(PATH_TO_CONFIG, "r", encoding="utf-8") as config_f:
         config = json.load(config_f)
 
