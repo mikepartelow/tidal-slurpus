@@ -1,0 +1,11 @@
+--- /usr/local/lib/python3.9/dist-packages/tidalapi/user.py	2023-04-29 03:27:21.940114002 +0000
++++ user.py	2023-04-29 03:28:29.958701643 +0000
+@@ -74,7 +74,7 @@
+         self.id = json_obj['id']
+         self.first_name = json_obj['firstName']
+         self.last_name = json_obj['lastName']
+-        self.picture_id = json_obj['picture']
++        self.picture_id = json_obj.get('picture')
+ 
+         return copy(self)
+ 
