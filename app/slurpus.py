@@ -9,22 +9,23 @@ PATH_TO_CONFIG = "slurpus_config.json"
 
 Track = namedtuple("Track", "name artist album artists")
 
-def same_track(candidate, target, ignore_artist=False, ignore_album=False):
-    c_artist = "" if ignore_artist else candidate.artist
-    t_artist = "" if ignore_artist else target.artist
+def same_track(candidate, target, ignore_artist=False, ignore_album=False, desperation=False):
+    c_artist = "" if ignore_artist else candidate.artist.lower()
+    t_artist = "" if ignore_artist else target.artist.lower()
 
-    c_album = "" if ignore_album else candidate.album
-    t_album = "" if ignore_album else target.album
+    c_album = "" if ignore_album else candidate.album.lower()
+    t_album = "" if ignore_album else target.album.lower()
 
     # FIXME: cache in dataclass
-    if "remaster" in target.name.lower():
-        # FIXME: dataclass.__init__(scrub=True)
-        def scrub(name):
-            ttable = {ord(c): None for c in "-()[]"}
-            name = re.sub(r'\d{4}\s*remaster', "", name, flags=re.I)
-            return ' '.join(name.translate(ttable).split())
-        candidate = Track(name=scrub(candidate.name), artist=c_artist, album=c_album, artists=candidate.artists)
-        target = Track(name=scrub(target.name), artist=t_artist, album=t_album, artists=target.artists)
+    # FIXME: dataclass.__init__(scrub=True)
+    def scrub(name):
+        ttable = {ord(c): None for c in "-()[]"}
+        name = re.sub(r'\d{0,4}\s*digital remaster', "", name, flags=re.I)
+        name = re.sub(r'\d{0,4}\s*remaster', "", name, flags=re.I)
+        return ' '.join(name.translate(ttable).split()).lower()
+
+    candidate = Track(name=scrub(candidate.name), artist=c_artist, album=scrub(c_album), artists=candidate.artists)
+    target = Track(name=scrub(target.name), artist=t_artist, album=scrub(t_album), artists=target.artists)
 
     if candidate.name == target.name \
             and c_album == t_album \
@@ -36,6 +37,13 @@ def same_track(candidate, target, ignore_artist=False, ignore_album=False):
             and c_album == t_album \
             and Counter(candidate.artists) == Counter(target.artists):
         return True
+
+    if desperation:
+        artists_equal = True if ignore_artist else Counter(candidate.artists) == Counter(target.artists)
+        if (candidate.name in target.name or target.name in candidate.name) \
+                and c_album == t_album \
+               and artists_equal:
+            return True
 
     return False
 
@@ -58,7 +66,7 @@ def find_candidates(target, session):
 
     return candidates, None
 
-def find_track(name, artist, album, track_cache, session, ignore_artist=False, ignore_album=False):
+def find_track(name, artist, album, track_cache, session, ignore_artist=False, ignore_album=False, desperation=False):
 
     freshen_candidates = False
 
@@ -77,7 +85,7 @@ def find_track(name, artist, album, track_cache, session, ignore_artist=False, i
             return track_id
 
     for track_id, candidate in candidates.items():
-        if same_track(Track(*candidate), target, ignore_artist=ignore_artist, ignore_album=ignore_album):
+        if same_track(Track(*candidate), target, ignore_artist=ignore_artist, ignore_album=ignore_album, desperation=True):
             track_cache.set_track_id(key, track_id)
             return track_id
 
@@ -100,6 +108,13 @@ def import_playlist(input_path, playlist_name, track_cache, session):
                 track_id = find_track(track, artist, album, track_cache, session, ignore_album=True)
             if not track_id:
                 track_id = find_track(track, artist, album, track_cache, session, ignore_artist=True)
+            if not track_id:
+                track_id = find_track(track, artist, album, track_cache, session, desperation=True)
+            if not track_id:
+                track_id = find_track(track, artist, album, track_cache, session, ignore_artist=True, desperation=True)
+
+            if not track_id:
+                track_id = find_track(track, artist, album, track_cache, session, ignore_artist=True, ignore_album=True, desperation=True)
 
             if track_id:
                 track_ids += 1

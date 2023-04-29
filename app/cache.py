@@ -16,7 +16,13 @@ def main():
     with cache.TrackCache(cache_path, read_only=True) as track_cache:
         for track in track_cache:
             if track.get("track_id", None) is None:
-                print(json.dumps(track, indent=2))
+                if track['candidates']:
+                    k = list(track['candidates'].keys())[0]
+                    print(f"{track['key']} ~= {track['candidates'][k]}")
+                else:
+                    print(f"No candidates: {track['key']}")
+                print("")
+                # print(json.dumps(track, indent=2))
 
 
 # FIXME: polish this
