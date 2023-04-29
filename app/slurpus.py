@@ -8,24 +8,27 @@ PATH_TO_CONFIG = "slurpus_config.json"
 
 Track = namedtuple("Track", "name artist album artists")
 
-def same_track(candidate, target):
+def same_track(candidate, target, ignore_album=False):
+    c_album = "" if ignore_album else candidate.album
+    t_album = "" if ignore_album else target.album
+
     # FIXME: cache in dataclass
     if "remaster" in target.name.lower():
         # FIXME: dataclass.__init__(scrub=True)
         def scrub(name):
             ttable = {ord(c): None for c in "-()[]"}
             return ' '.join(name.translate(ttable).split())
-        candidate = Track(name=scrub(candidate.name), artist=candidate.artist, album=candidate.album, artists=candidate.artists)
-        target = Track(name=scrub(target.name), artist=target.artist, album=target.album, artists=target.artists)
+        candidate = Track(name=scrub(candidate.name), artist=candidate.artist, album=c_album, artists=candidate.artists)
+        target = Track(name=scrub(target.name), artist=target.artist, album=t_album, artists=target.artists)
 
     if candidate.name == target.name \
-            and candidate.album == target.album \
+            and c_album == t_album \
             and candidate.artist == target.artist:
         return True
 
     # FIXME: once Track is a dataclass, cache Counter(self.artists)
     if candidate.name == target.name \
-            and candidate.album == target.album \
+            and c_album == t_album \
             and Counter(candidate.artists) == Counter(target.artists):
         return True
 
@@ -50,7 +53,7 @@ def find_candidates(target, session):
 
     return candidates, None
 
-def find_track(name, artist, album, track_cache, session):
+def find_track(name, artist, album, track_cache, session, ignore_album=False):
 
     freshen_candidates = False
 
@@ -69,7 +72,7 @@ def find_track(name, artist, album, track_cache, session):
             return track_id
 
     for track_id, candidate in candidates.items():
-        if same_track(Track(*candidate), target):
+        if same_track(Track(*candidate), target, ignore_album=ignore_album):
             track_cache.set_track_id(key, track_id)
             return track_id
 
@@ -88,6 +91,8 @@ def import_playlist(input_path, playlist_name, track_cache, session):
 
             # note argument order is not the same as input_f order
             track_id = find_track(track, artist, album, track_cache, session)
+            if not track_id:
+                track_id = find_track(track, artist, album, track_cache, session, ignore_album=True)
             if track_id:
                 track_ids += 1
     print("")
@@ -95,7 +100,7 @@ def import_playlist(input_path, playlist_name, track_cache, session):
 
 def main():
     """Does the magic."""
-    raise "time for refactor"
+    # raise "time for refactor"
     with open(PATH_TO_CONFIG, "r", encoding="utf-8") as config_f:
         config = json.load(config_f)
 
