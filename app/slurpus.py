@@ -3,6 +3,7 @@ import tidalapi
 import re
 from lib import auth, cache
 from collections import namedtuple, Counter
+import time
 
 # a JSON file with playlist_id to import to, and an input_path to import from
 PATH_TO_CONFIG = "slurpus_config.json"
@@ -66,12 +67,12 @@ def find_candidates(target, session):
 
     return candidates, None
 
-def find_track(name, artist, album, track_cache, session, ignore_artist=False, ignore_album=False, desperation=False):
+def find_track(name, artist, album, track_cache, session, ignore_artist=False, ignore_album=False, desperation=False, skip_matching=False):
 
     freshen_candidates = False
 
     key = track_cache.make_key(name, artist, album)
-    if track_id := track_cache.get_track_id(key):
+    if (track_id := track_cache.get_track_id(key)) or skip_matching:
         return track_id
 
     # Our data source has only one "artist" field which can contain a list of artists like
@@ -91,10 +92,9 @@ def find_track(name, artist, album, track_cache, session, ignore_artist=False, i
 
     return None
 
-def import_playlist(input_path, playlist_name, track_cache, session):
-    # https://tidalapi.netlify.app/playlist.html#adding-to-a-playlist
 
-    track_count, track_ids = 0, 0
+def find_track_ids(input_path, track_cache, session, skip_matching=False):
+    track_count, track_ids = 0, []
     with open(input_path, "r", encoding="utf-8") as input_f:
         for line in input_f:
             track_count += 1
@@ -103,27 +103,45 @@ def import_playlist(input_path, playlist_name, track_cache, session):
             track, album, artist = map(str.strip, line.split("\t"))
 
             # note argument order is not the same as input_f order
-            track_id = find_track(track, artist, album, track_cache, session)
-            if not track_id:
-                track_id = find_track(track, artist, album, track_cache, session, ignore_album=True)
-            if not track_id:
-                track_id = find_track(track, artist, album, track_cache, session, ignore_artist=True)
-            if not track_id:
-                track_id = find_track(track, artist, album, track_cache, session, desperation=True)
-            if not track_id:
-                track_id = find_track(track, artist, album, track_cache, session, ignore_artist=True, desperation=True)
-
-            if not track_id:
-                track_id = find_track(track, artist, album, track_cache, session, ignore_artist=True, ignore_album=True, desperation=True)
+            track_id = find_track(track, artist, album, track_cache, session, skip_matching=skip_matching)
+            if not skip_matching:
+                if not track_id:
+                    track_id = find_track(track, artist, album, track_cache, session, ignore_album=True)
+                if not track_id:
+                    track_id = find_track(track, artist, album, track_cache, session, ignore_artist=True)
+                if not track_id:
+                    track_id = find_track(track, artist, album, track_cache, session, desperation=True)
+                if not track_id:
+                    track_id = find_track(track, artist, album, track_cache, session, ignore_artist=True, desperation=True)
+                if not track_id:
+                    track_id = find_track(track, artist, album, track_cache, session, ignore_artist=True, ignore_album=True, desperation=True)
 
             if track_id:
-                track_ids += 1
-    print("")
-    print(f"Found {track_ids} ids for {track_count} tracks.")
+                track_ids.append(track_id)
+
+    return track_count, track_ids
+
+def import_playlist(tidal_playlist_name, track_ids, session):
+    playlist = None
+    for candidate in session.user.playlists():
+        if candidate.name == tidal_playlist_name:
+            playlist = candidate
+            break
+
+    if not playlist:
+        print("Creating playlist")
+        playlist = session.user.create_playlist(tidal_playlist_name, tidal_playlist_name)
+
+    MAX_ADD = 100
+    start, finish = 0, MAX_ADD
+    while finish < len(track_ids):
+        # print(f"adding {start}:{finish}: {track_ids[start:finish]}")
+        print(f"adding {start}:{finish}")
+        playlist.add(track_ids[start:finish])
+        start, finish = finish, finish + MAX_ADD
 
 def main():
     """Does the magic."""
-    # raise "time for refactor"
     with open(PATH_TO_CONFIG, "r", encoding="utf-8") as config_f:
         config = json.load(config_f)
 
@@ -135,14 +153,21 @@ def main():
 
     cache_path = f"{input_path}.cache.json"
     with cache.TrackCache(cache_path) as track_cache:
-        import_playlist(input_path, tidal_playlist_name, track_cache, session)
+        track_count, track_ids = find_track_ids(input_path, track_cache, session, skip_matching=True)
 
+        print("")
+        print(f"Found {len(track_ids)} ids for {track_count} tracks.")
+
+        import_playlist(tidal_playlist_name, track_ids, session)
+        print("Success, probably!")
 
 # FIXME: match inexact tracks
 #        - [ ] multi-artist tracks
 # FIXME: use dataclasses instead of namedtuple
 # FIXME: typing
 # FIXME: probably need to page search results - but this is last resort
+# FIXME: refactor find_tracks
+# FIXME: refactor find_track
 # FIXME: `make lint` works in devcontainer
 # FIXME: shell in devcontainer defaults to same dir as Makefile
 # FIXME: vscode `Python: Run Linting` works
