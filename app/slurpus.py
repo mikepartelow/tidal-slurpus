@@ -135,7 +135,6 @@ def import_playlist(tidal_playlist_name, track_ids, session):
     MAX_ADD = 100
     start, finish = 0, MAX_ADD
     while finish < len(track_ids):
-        # print(f"adding {start}:{finish}: {track_ids[start:finish]}")
         print(f"adding {start}:{finish}")
         playlist.add(track_ids[start:finish])
         start, finish = finish, finish + MAX_ADD
